@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Teacher & Student Portal (Single File)</title>
+  <style>
+    :root{--card-bg: #ffffff;--accent1:#8ec5fc;--accent2:#e0c3fc}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(135deg,var(--accent1),var(--accent2));min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .app{width:100%;max-width:1000px;background:rgba(255,255,255,0.9);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);overflow:hidden}
+    header{padding:20px 28px;background:linear-gradient(90deg,rgba(0,0,0,0.03),rgba(0,0,0,0.01));display:flex;align-items:center;justify-content:space-between}
+    header h1{margin:0;font-size:20px}
+    main{padding:28px}
+    .role-grid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+    .role-card{flex:1 1 220px;max-width:360px;min-height:140px;background:var(--card-bg);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s,box-shadow .18s;padding:18px;text-align:center}
+    .role-card:hover{transform:translateY(-6px);box-shadow:0 14px 40px rgba(0,0,0,0.12)}
+    .role-card .title{font-size:22px;font-weight:600;margin-bottom:6px}
+    .small{font-size:13px;color:#140f0f}
+
+    /* form styles */
+    .form{max-width:480px;margin:0 auto}
+    label{display:block;margin:12px 0 6px;font-weight:600}
+    input[type=text],input[type=password],select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
+    button{margin-top:14px;padding:10px 14px;border-radius:10px;border:0;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer}
+    .muted{color:#666;font-size:13px}
+    .link-like{background:none;border:0;color:#3b82f6;cursor:pointer;padding:0;margin-top:8px}
+
+    /* subject & unit boxes */
+    .grid{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+    .pill{background:#0a0a11;border-radius:8px;padding:10px 14px;cursor:pointer;border:1px solid #0f0b0b}
+
+    /* questions */
+    .question{padding:14px;border-radius:8px;border:1px solid #eee;margin-bottom:12px;background:#fff}
+    .q-title{font-weight:600;margin-bottom:8px}
+    .options{display:flex;gap:12px;flex-wrap:wrap}
+    .option{display:flex;align-items:center;gap:8px}
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+
+    .hidden{display:none}
+    @media (max-width:700px){header{flex-direction:column;gap:8px} .role-grid{flex-direction:column} }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header>
+      <h1>Teacher / Student Portal</h1>
+    </header>
+
+    <main>
+      <!-- Home -->
+      <section id="home">
+        <h2 style="text-align:center">Select your role</h2>
+        <p style="text-align:center" class="muted">Click "Teachers" or "Students" to continue</p>
+        <div class="role-grid" style="margin-top:18px">
+          <div class="role-card" id="teacherCard">
+            <div class="title">Teachers</div>
+            <div class="small">Sign in with the provided teacher credentials</div>
+          </div>
+          <div class="role-card" id="studentCard">
+            <div class="title">Students</div>
+            <div class="small">Sign up with any valid Gmail ID</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Login Form (used for both roles) -->
+      <section id="login" class="hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <h2 id="loginTitle">Sign In</h2>
+          <div class="muted" id="loginRoleLabel">role</div>
+        </div>
+
+        <form class="form" id="loginForm" onsubmit="return handleLogin(event)">
+          <label for="email">Email (Gmail only)</label>
+          <input id="email" type="text" placeholder="example@gmail.com" required />
+
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="password" required />
+
+          <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
+            <button id="submitBtn" type="submit">Submit</button>
+            <button type="button" class="link-like" onclick="goHome()">Back</button>
+          </div>
+          <div id="loginMsg" class="muted" style="margin-top:10px"></div>
+        </form>
+      </section>
+
+      <!-- Subject selection -->
+      <section id="subject" class="hidden">
+        <h2 id="subjectTitle">Choose Subject</h2>
+        <div class="grid" id="subjectGrid"></div>
+        <div style="margin-top:18px">
+          <button onclick="goHome()">Home</button>
+        </div>
+      </section>
+
+      <!-- Unit selection -->
+      <section id="unit" class="hidden">
+        <h2 id="unitTitle">Select Unit</h2>
+        <div class="grid" id="unitGrid"></div>
+        <div style="margin-top:18px">
+          <button onclick="goToSection('subject')">Back to Subjects</button>
+        </div>
+      </section>
+
+      <!-- Questions page -->
+      <section id="questions" class="hidden">
+        <h2 id="questionsTitle">Unit: <span id="currentUnit"></span> — <span id="currentSubject"></span></h2>
+        <div id="questionsContainer"></div>
+        <div class="footer">
+          <div class="muted">Answer by selecting option. (Optional text box provided)</div>
+          <div>
+            <button onclick="submitAnswers()">Submit Answers</button>
+            <button onclick="goToSection('unit')" style="margin-left:8px">Back</button>
+          </div>
+        </div>
+        <div id="result" style="margin-top:12px;font-weight:700"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // --- Configuration ---
+    const TEACHER_EMAIL = 'teacher.portal@gmail.com';
+    const TEACHER_PASSWORD = 'teach123';
+    const SUBJECTS = ['EG','BCME','IP','Chem','LAC'];
+    const UNITS = ['1','2','3','4','5'];
+
+    // 20 sample MCQs (these can be edited). Format: {q, opts:[], answer: index}
+    // QUESTION BANK — Empty Templates for All Subjects (5 units × 20 questions each)
+    const QUESTIONS_MASTER = {
+      EG: {
+        1: [
+        { 
+          q: "What is the purpose of Engineering Graphics?",
+          opts: ["Communication", "Programming", "Surveying", "Welding"],
+          answer: 0
+        },
+        { 
+          q: "Which instrument is used to draw circles?",
+          opts: ["Compass", "Protractor", "Set square", "Divider"],
+          answer: 0
+        },
+        { 
+          q: "What is the standard sheet size used in engineering drawing?",
+          opts: ["A0", "A1", "A4", "A3"],
+          answer: 3
+        },
+        { 
+          q:"If A is a 2×3 matrix and B is a 3×2 matrix, then AB will be of order:", 
+          opts:["2×2","3×3","3×2","2×3"], 
+          answer:0
+        },
+
+        {
+          q:"The transpose of a matrix is obtained by:", 
+          opts:["Changing signs of elements","Exchanging rows and columns","Multiplying with scalar","Adding rows"], 
+          answer:1
+        },
+
+        {
+          q:"A matrix in which all elements are zero is called:", 
+          opts:["Unit matrix","Null matrix","Diagonal matrix","Scalar matrix"], 
+          answer:1
+        },
+
+        {
+          q:"Which of the following matrices has only one row?", 
+          opts:["Square matrix","Row matrix","Column matrix","Zero matrix"], 
+          answer:1
+        },
+
+        {
+          q:"If A = [a b; c d], then det(A) equals:", 
+          opts:["a+b+c+d","ab+cd","ad - bc","ad + bc"], 
+          answer:2
+        },
+
+        {
+          q:"Which matrix has non-zero elements only on its main diagonal?", 
+          opts:["Zero matrix","Diagonal matrix","Row matrix","Symmetric matrix"], 
+          answer:1
+        },
+
+        {
+          q:"A matrix A is symmetric if:", 
+          opts:["A = -Aᵀ","A = Aᵀ","A has only zeros","A is diagonal"], 
+          answer:1
+        }
+           ],
+        2: [
+        { 
+          q: "What is the purpose of Engineering Graphics?",
+          opts: ["Communication", "Programming", "Surveying", "Welding"],
+          answer: 0
+        },
+        { 
+          q: "Which instrument is used to draw circles?",
+          opts: ["Compass", "Protractor", "Set square", "Divider"],
+          answer: 0
+        },
+        { 
+          q: "What is the standard sheet size used in engineering drawing?",
+          opts: ["A0", "A1", "A4", "A3"],
+          answer: 3
+        },
+        { 
+          q:"Orthogonal transformations preserve:", 
+          opts:["Angles only","Lengths only","Both lengths and angles","Eigenvalues only"], 
+          answer:2
+        },
+
+        { 
+          q:"Which of the following is always true for an orthogonal matrix?", 
+          opts:["Determinant is zero","Determinant is ±1","Determinant is always 1","All entries are 0 or 1"], 
+          answer:1
+        },
+        { 
+          q:"If T is a linear transformation, T(0) equals:", 
+          opts:["1","0","Depends on T","Cannot be determined"], 
+          answer:1
+        },
+
+        {
+          q:"A transformation that preserves inner product is called:", 
+          opts:["Linear transformation","Orthogonal transformation","Translation","Shear transformation"], 
+          answer:1
+        },
+
+        {
+          q:"The inverse of an orthogonal matrix A is:", 
+          opts:["A","A²","Aᵀ","2A"], 
+          answer:2
+        },
+
+        { 
+          q:"Which of the following is an example of an orthogonal transformation?", 
+          opts:["Rotation","Shear","Scaling","Projection"], 
+          answer:0
+        },
+
+        {
+          q:"A linear transformation T: R² → R² represented by a matrix with determinant 0 is:", 
+          opts:["Invertible","Not invertible","Always orthogonal","Always diagonal"], 
+          answer:1
+        }
+           ],
+
+        
+      
+        3: [
+        { 
+          q: "What is the purpose of Engineering Graphics?",
+          opts: ["Communication", "Programming", "Surveying", "Welding"],
+          answer: 0
+        },
+        { 
+          q: "Which instrument is used to draw circles?",
+          opts: ["Compass", "Protractor", "Set square", "Divider"],
+          answer: 0
+        },
+        { 
+          q: "What is the standard sheet size used in engineering drawing?",
+          opts: ["A0", "A1", "A4", "A3"],
+          answer: 3
+        },
+
+        {
+          q:"Which theorem is a generalization of Lagrange’s MVT?", 
+          opts:["Cauchy’s Mean Value Theorem","Rolle’s Theorem","Taylor’s Theorem","Fundamental Theorem of Calculus"], 
+          answer:0
+        },
+        {
+          q:"Which condition is NOT required for Lagrange’s MVT?", 
+          opts:["Function must be continuous on [a,b]","Function must be differentiable on (a,b)","f(a) must equal f(b)","a < b"], 
+          answer:2
+        },
+
+        {
+          q:"Rolle’s Theorem is a special case of:", 
+          opts:["Cauchy’s MVT","Taylor’s Theorem","Lagrange’s MVT","Bernoulli’s Theorem"], 
+          answer:2
+        },
+        {
+          q:"Cauchy’s MVT involves how many functions?", 
+          opts:["1","2","3","4"], 
+          answer:1
+        },
+
+       {
+        q:"For Rolle’s theorem, the point c lies in:", 
+        opts:["[a,b]","(a,b)","(-∞,∞)","Any closed interval"], 
+        answer:1
+      },
+      {
+        q:"If f(x) = x² on [0,2], Lagrange’s MVT gives c such that:", 
+        opts:["f’(c)=0","f’(c)=4","f’(c)=2","f’(c)=1"], 
+        answer:2
+      },
+      {
+        q:"Mean Value Theorem is applicable only if:", 
+        opts:["Function is bounded","Function is periodic","Function is continuous on closed interval and differentiable on open interval","Function is strictly increasing"], 
+        answer:2
+      }
+          ],
+
+
+        4: [
+        { 
+          q: "What is the purpose of Engineering Graphics?",
+          opts: ["Communication", "Programming", "Surveying", "Welding"],
+          answer: 0
+        },
+        { 
+          q: "Which instrument is used to draw circles?",
+          opts: ["Compass", "Protractor", "Set square", "Divider"],
+          answer: 0
+        },
+        { 
+          q: "What is the standard sheet size used in engineering drawing?",
+          opts: ["A0", "A1", "A4", "A3"],
+          answer: 3
+        },
+        {
+          q:"The notation ∂²f/∂x² represents:", 
+          opts:["Second order partial derivative","Mixed partial derivative","Total derivative","Integral"], 
+          answer:0
+        },
+        {
+         q:"Clairaut’s theorem states that for continuous functions:", 
+         opts:["∂²f/∂x∂y = ∂f/∂x","∂²f/∂x∂y = ∂²f/∂y∂x","∂f/∂x = ∂f/∂y","∂²f/∂y² = ∂²f/∂x²"], 
+         answer:1
+        },
+        {
+          q:"If z = f(x,y), then dz is given by:", 
+          opts:["dz = f dx + y dy","dz = ∂f/∂x dx + ∂f/∂y dy","dz = dx + dy","dz = x dy + y dx"], 
+          answer:1
+        },
+        {
+          q:"The Jacobian determinant is used in:", 
+          opts:["Integration by parts","Coordinate transformation","Finding limits","Solving algebraic equations"], 
+          answer:1
+        },
+
+  {q:"If u = x² + y², then ∂u/∂y equals:", 
+   opts:["2x","2y","x+y","xy"], 
+   answer:1},
+
+  {q:"A critical point occurs where:", 
+   opts:["Partial derivatives equal 1","Only one partial derivative is zero","Both partial derivatives are zero","Second derivatives are zero"], 
+   answer:2},
+
+  {q:"Partial derivatives are mainly used in:", 
+   opts:["Heat and wave equations","Matrix algebra","Number theory","Graph theory"], 
+   answer:0}
+
+      ],
+        5: [
+        { 
+          q: "What is the purpose of Engineering Graphics?",
+          opts: ["Communication", "Programming", "Surveying", "Welding"],
+          answer: 0
+        },
+        { 
+          q: "Which instrument is used to draw circles?",
+          opts: ["Compass", "Protractor", "Set square", "Divider"],
+          answer: 0
+        },
+        { 
+          q: "What is the standard sheet size used in engineering drawing?",
+          opts: ["A0", "A1", "A4", "A3"],
+          answer: 3
+        },
+        {q:"Which transformation is commonly used in double integrals?", 
+   opts:["Polar coordinates","Euler coordinates","Lagrange coordinates","Matrix form"], 
+   answer:0},
+
+  {q:"In polar coordinates, dA becomes:", 
+   opts:["dx dy","r dr dθ","dr dθ","r² dr dθ"], 
+   answer:1},
+
+  {q:"The limits of integration describe:", 
+   opts:["The value of the function","The region R over which we integrate","Derivative of function","Nothing important"], 
+   answer:1},
+
+  {q:"The Jacobian is essential when:", 
+   opts:["Doing substitution in integrals","Solving derivatives","Finding limits","Doing matrix addition"], 
+   answer:0},
+
+  {q:"Triple integrals in spherical coordinates include which factor?", 
+   opts:["r","r² sinθ","sinθ","ρ²"], 
+   answer:1},
+
+  {q:"A double integral can be written as:", 
+   opts:["∫ f dx","∫∫ f(x,y) dx dy","∭ f dx dy dz","f’(x)"], 
+   answer:1},
+
+  {q:"Double integrals are most commonly applied to compute:", 
+   opts:["Velocity","Area and average value","Roots of equations","Eigenvalues"], 
+   answer:1}
+      ],
+      },
+      BCME: {
+        1: [
+    {
+    "q": "Which type of bond involves sharing of electron pairs between atoms?",
+    "opts": ["Ionic bond", "Covalent bond", "Metallic bond", "Hydrogen bond"],
+    "answer": 1
+  },
+  {
+    "q": "Ionic bonds are generally formed between:",
+    "opts": ["Two metals", "Two non-metals", "Metal and non-metal", "Metal and metalloid"],
+    "answer": 2
+  },
+  {
+    "q": "Which of the following has a linear molecular geometry?",
+    "opts": ["CO2", "H2O", "NH3", "CH4"],
+    "answer": 0
+  },
+  {
+    "q": "According to VSEPR theory, the shape of methane (CH4) is:",
+    "opts": ["Linear", "Trigonal planar", "Tetrahedral", "Bent"],
+    "answer": 2
+  },
+  {
+    "q": "Metallic bonding is best described as:",
+    "opts": ["Shared electron pairs", "Electron transfer", "Sea of delocalised electrons", "Electrostatic attraction between nuclei"],
+    "answer": 2
+  },
+  {
+    "q": "Which molecule contains a polar covalent bond?",
+    "opts": ["O2", "N2", "HCl", "Cl2"],
+    "answer": 2
+  },
+  {
+    "q": "The bond formed due to electrostatic attraction between ions is:",
+    "opts": ["Covalent bond", "Ionic bond", "Metallic bond", "Coordinate bond"],
+    "answer": 1
+  },
+  {
+    "q": "Which type of bonding explains conductivity in metals?",
+    "opts": ["Ionic bonding", "Covalent bonding", "Metallic bonding", "Hydrogen bonding"],
+    "answer": 2
+  },
+  {
+    "q": "The coordinate bond involves:",
+    "opts": ["Equal sharing of electrons", "Transfer of electrons", "One atom donating both electrons to the bond", "Nuclei attraction"],
+    "answer": 2
+  },
+  {
+    "q": "Which hybridization corresponds to trigonal planar geometry?",
+    "opts": ["sp", "sp2", "sp3", "sp3d"],
+    "answer": 1
+  }
+],
+
+        2: [
+  {
+    "q": "Which of the following is a smart material?",
+    "opts": ["Shape Memory Alloy", "Cast Iron", "Brass", "Mild Steel"],
+    "answer": 0
+  },
+  {
+    "q": "Carbon fiber composites are mainly known for their:",
+    "opts": ["Low strength", "High density", "High strength-to-weight ratio", "Poor corrosion resistance"],
+    "answer": 2
+  },
+  {
+    "q": "Which material is widely used in aerospace due to its lightweight and heat resistance?",
+    "opts": ["Titanium alloys", "Copper", "Lead", "Zinc"],
+    "answer": 0
+  },
+  {
+    "q": "Nanomaterials typically have particle sizes in the range of:",
+    "opts": ["1–100 nm", "1–100 μm", "1–10 cm", "1–10 m"],
+    "answer": 0
+  },
+  {
+    "q": "Which of the following is a biodegradable polymer?",
+    "opts": ["PVC", "PLA", "Nylon", "Polyethylene"],
+    "answer": 1
+  },
+  {
+    "q": "Superalloys are primarily used in:",
+    "opts": ["Electrical circuits", "Aerospace turbine blades", "Food packaging", "Furniture"],
+    "answer": 1
+  },
+  {
+    "q": "Which category does graphene belong to?",
+    "opts": ["Ceramic material", "Metal", "2D material", "Polymer"],
+    "answer": 2
+  },
+  {
+    "q": "Shape Memory Alloys return to their original shape when:",
+    "opts": ["Electric current is applied", "Pressure is applied", "They are heated", "They are cooled"],
+    "answer": 2
+  },
+  {
+    "q": "Ceramic materials generally have:",
+    "opts": ["High thermal resistance", "High ductility", "Low hardness", "Low melting point"],
+    "answer": 0
+  },
+  {
+    "q": "Which material is commonly used for biomedical implants?",
+    "opts": ["Titanium", "Silver", "Lead", "Tin"],
+    "answer": 0
+  }
+],
+
+        3: [
+  {
+    "q": "Electrochemistry deals with the relationship between:",
+    "opts": ["Heat and energy", "Electricity and chemical reactions", "Light and matter", "Pressure and volume"],
+    "answer": 1
+  },
+  {
+    "q": "Which of the following is an example of a primary cell?",
+    "opts": ["Lead-acid battery", "Lithium-ion battery", "Dry cell", "Nickel-cadmium battery"],
+    "answer": 2
+  },
+  {
+    "q": "In an electrochemical cell, oxidation occurs at the:",
+    "opts": ["Cathode", "Anode", "Salt bridge", "Electrolyte"],
+    "answer": 1
+  },
+  {
+    "q": "The device used to maintain electrical neutrality in a galvanic cell is:",
+    "opts": ["Voltmeter", "Salt bridge", "Electrolyte", "Anode"],
+    "answer": 1
+  },
+  {
+    "q": "Which law explains the amount of substance liberated during electrolysis?",
+    "opts": ["Boyle's law", "Faraday's laws", "Ohm's law", "Charles' law"],
+    "answer": 1
+  },
+  {
+    "q": "Fuel cells are mainly used to convert:",
+    "opts": ["Mechanical energy to heat", "Chemical energy to electrical energy", "Light energy to chemical energy", "Electrical energy to chemical energy"],
+    "answer": 1
+  },
+  {
+    "q": "The pH of a solution can be measured using a:",
+    "opts": ["Fuel cell", "Calorimeter", "Glass electrode", "Salt bridge"],
+    "answer": 2
+  },
+  {
+    "q": "In electroplating, the metal to be plated is connected to the:",
+    "opts": ["Cathode", "Anode", "Voltmeter", "Salt bridge"],
+    "answer": 0
+  },
+  {
+    "q": "The standard electrode potential of hydrogen electrode is:",
+    "opts": ["1 V", "0 V", "−1 V", "2 V"],
+    "answer": 1
+  },
+  {
+    "q": "Which battery is commonly used in electric vehicles?",
+    "opts": ["Lead-acid battery", "Nickel-iron battery", "Lithium-ion battery", "Dry cell"],
+    "answer": 2
+  }
+],
+
+        4: [
+  {
+    "q": "Polymers are formed by the process of:",
+    "opts": ["Condensation", "Polymerization", "Sublimation", "Neutralization"],
+    "answer": 1
+  },
+  {
+    "q": "Which of the following is a thermoplastic polymer?",
+    "opts": ["Bakelite", "PVC", "Vulcanized rubber", "Melamine"],
+    "answer": 1
+  },
+  {
+    "q": "The monomer of polythene is:",
+    "opts": ["Styrene", "Ethylene", "Vinyl chloride", "Propylene"],
+    "answer": 1
+  },
+  {
+    "q": "Which of the following is an example of a natural polymer?",
+    "opts": ["Nylon", "Teflon", "Cellulose", "Polystyrene"],
+    "answer": 2
+  },
+  {
+    "q": "Which polymer is used in non-stick cookware?",
+    "opts": ["PVC", "Teflon", "Nylon-6,6", "Polystyrene"],
+    "answer": 1
+  },
+  {
+    "q": "Bakelite is an example of:",
+    "opts": ["Thermoplastic", "Elastomer", "Biopolymer", "Thermosetting polymer"],
+    "answer": 3
+  },
+  {
+    "q": "Rubber is made more durable by the process of:",
+    "opts": ["Crystallization", "Vulcanization", "Hydrogenation", "Cross-linking"],
+    "answer": 1
+  },
+  {
+    "q": "Which polymer is commonly used in textile fibers?",
+    "opts": ["Polystyrene", "Nylon", "Teflon", "PVC"],
+    "answer": 1
+  },
+  {
+    "q": "The polymer used in bulletproof glass is:",
+    "opts": ["Polycarbonate", "Polyester", "Polythene", "PVC"],
+    "answer": 0
+  },
+  {
+    "q": "The repeating structural unit in a polymer is called:",
+    "opts": ["Isomer", "Crystal", "Monomer", "Resin"],
+    "answer": 2
+  }
+],
+
+        5: [
+  {
+    "q": "Which technique is used to determine the absorption of UV-visible light by a substance?",
+    "opts": ["NMR Spectroscopy", "UV-Vis Spectroscopy", "Mass Spectrometry", "X-ray Diffraction"],
+    "answer": 1
+  },
+  {
+    "q": "Which instrument is used to measure the mass-to-charge ratio of ions?",
+    "opts": ["Fluorimeter", "Colorimeter", "Mass Spectrometer", "Polarimeter"],
+    "answer": 2
+  },
+  {
+    "q": "IR spectroscopy is mainly used to study:",
+    "opts": ["Electron transitions", "Molecular vibrations", "Nuclear spin", "Crystal structure"],
+    "answer": 1
+  },
+  {
+    "q": "Which analytical method is commonly used for separation of mixtures?",
+    "opts": ["Chromatography", "Electrolysis", "Calorimetry", "Potentiometry"],
+    "answer": 0
+  },
+  {
+    "q": "X-ray diffraction (XRD) is primarily used to determine:",
+    "opts": ["Molecular weight", "Crystal structure", "Thermal stability", "Color intensity"],
+    "answer": 1
+  },
+  {
+    "q": "Which instrumental technique measures the rotation of plane-polarized light?",
+    "opts": ["Polarimetry", "Fluorimetry", "NMR", "Conductometry"],
+    "answer": 0
+  },
+  {
+    "q": "Which detector is commonly used in Gas Chromatography (GC)?",
+    "opts": ["FID", "TCD", "ECD", "All of these"],
+    "answer": 3
+  },
+  {
+    "q": "pH of a solution is measured using:",
+    "opts": ["Conductometer", "Potentiometer", "Colorimeter", "pH Meter"],
+    "answer": 3
+  },
+  {
+    "q": "Which method is best for detecting functional groups in organic molecules?",
+    "opts": ["UV-Vis", "IR Spectroscopy", "XRD", "GC"],
+    "answer": 1
+  },
+  {
+    "q": "Flame photometry is mainly used for determining:",
+    "opts": ["Amino acids", "Carbohydrates", "Alkali and alkaline earth metals", "Proteins"],
+    "answer": 2
+  }
+        ],
+      },
+      IP: {
+        1:[
+  {q:"What is the first step in computer problem solving?", opts:["Coding","Understanding the problem","Testing","Debugging"], answer:1},
+
+  {q:"A step-by-step procedure to solve a problem is called:", opts:["Flowchart","Algorithm","Program","Module"], answer:1},
+
+  {q:"Which diagram uses symbols to represent the flow of logic?", opts:["Block diagram","Flowchart","ER diagram","Circuit diagram"], answer:1},
+
+  {q:"Debugging refers to:", opts:["Writing algorithms","Designing flowcharts","Finding and fixing errors","Compiling code"], answer:2},
+
+  {q:"Which of the following is NOT a characteristic of a good algorithm?", opts:["Unambiguous","Finite","Language dependent","Effective"], answer:2},
+
+  {q:"Breaking a large problem into smaller modules is called:", opts:["Iteration","Recursion","Modularization","Compilation"], answer:2},
+
+  {q:"Which control structure is used for repeated execution?", opts:["Selection","Looping","Sequence","Decision"], answer:1},
+
+  {q:"Pseudo code is:", opts:["Actual program code","Informal high-level description of algorithm","Machine language","Compiler output"], answer:1},
+
+  {q:"In problem solving, the final output depends mainly on:", opts:["Input and processing","Compiler version","Operating system","Hardware type"], answer:0},
+
+  {q:"Which of the following helps visualize the problem before coding?", opts:["Keyboard","Flowchart","RAM","Interpreter"], answer:1}
+   ],
+
+        2: [
+  {q:"Who is the father of C programming language?", opts:["James Gosling","Dennis Ritchie","Bjarne Stroustrup","Guido van Rossum"], answer:1},
+
+  {q:"C is a ______ programming language.", opts:["High-level","Low-level","Middle-level","Machine-level"], answer:2},
+
+  {q:"#include <stdio.h> is used for:", opts:["Math functions","Standard input/output functions","String functions","File handling"], answer:1},
+
+  {q:"Which symbol is used to end a statement in C?", opts:[":",";","}","\\"], answer:1},
+
+  {q:"Which of the following is a valid C data type?", opts:["integer","int","number","real"], answer:1},
+
+  {q:"Which function is used to take input from the user?", opts:["print()","scanf()","input()","read()"], answer:1},
+
+  {q:"The main() function returns:", opts:["char","void","int","float"], answer:2},
+
+  {q:"Which of the following is a correct comment in C?", opts:["// comment","<!-- comment -->","%% comment","** comment **"], answer:0},
+
+  {q:"What is the correct format specifier for printing an integer?", opts:["%c","%d","%s","%f"], answer:1},
+
+  {q:"Which operator is used for assignment?", opts:["==","=","!=","+="], answer:1}
+],
+
+        3: [
+  {q:"What is an array?", opts:["Collection of different data types","Collection of variables of the same data type","A single large integer","A memory leak"], answer:1},
+
+  {q:"Array indexing in C starts from:", opts:["0","1","-1","Depends on compiler"], answer:0},
+
+  {q:"Which of the following correctly declares an integer array of size 5?", opts:["int arr(5);","int arr[5];","array int arr[5];","int arr{5};"], answer:1},
+
+  {q:"What will arr[2] access in an array?", opts:["3rd element","2nd element","1st element","Last element"], answer:0},
+
+  {q:"Which operator is used to access array elements?", opts:[".","->","[]","()"], answer:2},
+
+  {q:"What is the size of int arr[10] in memory if int = 4 bytes?", opts:["4 bytes","10 bytes","20 bytes","40 bytes"], answer:3},
+
+  {q:"Which of the following is NOT a type of array?", opts:["1D array","2D array","3D array","4D array"], answer:3},
+
+  {q:"How is a two-dimensional array represented?", opts:["arr[][]","arr[]","arr<>","arr()"], answer:0},
+
+  {q:"Which of the following accesses the first element of array arr?", opts:["arr(0)","arr{0}","arr[0]","arr:0"], answer:2},
+
+  {q:"What happens if you access arr[100] in an array of size 10?", opts:["Compiler error","Runtime error","Undefined behavior","Returns 0"], answer:2}
+],
+
+        4: [
+  { "q":"What is a function in C?", 
+    "opts":["A variable","A block of code that performs a task","An operator","A data type"], 
+    "answer":1 
+  },
+
+  { "q":"Which keyword is used to return a value from a function?", 
+    "opts":["send","back","return","give"], 
+    "answer":2 
+  },
+
+  { "q":"Which of the following is the correct syntax to declare a function?", 
+    "opts":["function name();","datatype functionname();","call functionname;","void = function();"], 
+    "answer":1 
+  },
+
+  { "q":"A function that does not return any value must be declared with:", 
+    "opts":["int","char","void","float"], 
+    "answer":2 
+  },
+
+  { "q":"Which of the following is a built-in function in C?", 
+    "opts":["start()","print()","printf()","output()"], 
+    "answer":2 
+  },
+
+  { "q":"A function that calls itself is known as:", 
+    "opts":["Inline function","Recursive function","Main function","Static function"], 
+    "answer":1 
+  },
+
+  { "q":"The values passed to a function are called:", 
+    "opts":["Returns","Calls","Parameters","Variables"], 
+    "answer":2 
+  },
+
+  { "q":"Which part of a function contains code statements?", 
+    "opts":["Function declaration","Function prototype","Function body","Header file"], 
+    "answer":2 
+  },
+
+  { "q":"What is the default return type of a function in C (if not specified)?", 
+    "opts":["void","char","int","float"], 
+    "answer":2 
+  },
+
+  { "q":"Which of the following passes the actual value to the function?", 
+    "opts":["Call by name","Call by reference","Call by value","Call by pointer"], 
+    "answer":2 
+  }
+],
+
+        5: [
+  { "q":"What is a structure in C?", 
+    "opts":["A user-defined data type","A loop type","A built-in function","A pointer type"], 
+    "answer":0 
+  },
+
+  { "q":"Which keyword is used to define a structure?", 
+    "opts":["struct","structure","str","record"], 
+    "answer":0 
+  },
+
+  { "q":"What is the main difference between a structure and a union?", 
+    "opts":["Union stores all members separately","Structure stores only one member at a time","Union shares memory among members","Structure shares memory among members"], 
+    "answer":2 
+  },
+
+  { "q":"Which of the following allows a structure inside another structure?", 
+    "opts":["Linked Structure","Nested Structure","Stacked Structure","Array Structure"], 
+    "answer":1 
+  },
+
+  { "q":"Which of the following is correct for accessing structure members?", 
+    "opts":["structure.member","structure->member","structure:member","structure/member"], 
+    "answer":0 
+  },
+
+  { "q":"What does an array of structures represent?", 
+    "opts":["Multiple arrays inside a structure","Multiple structures stored in sequence","Structure inside an array element","Pointer to a structure"], 
+    "answer":1 
+  },
+
+  { "q":"Bit fields in structures are mainly used to:", 
+    "opts":["Increase execution speed","Assign multiple meanings to variables","Reduce memory usage","Improve pointer arithmetic"], 
+    "answer":2 
+  },
+
+  { "q":"Which operator is used to access members of a structure through a pointer?", 
+    "opts":[".","->","*","&"], 
+    "answer":1 
+  },
+
+  { "q":"What is the size of a union equal to?", 
+    "opts":["Sum of sizes of all members","Double the size of largest member","Size of largest member","Always 1 byte"], 
+    "answer":2 
+  },
+
+  { "q":"Which of the following is valid structure declaration?", 
+    "opts":["struct S { int a; float b; };","S struct { int a; float b; };","structure S (a:int, b:float);","struct S = { int a; float b; };"], 
+    "answer":0 
+  }
+],
+         },
+
+      Chem: {
+        1: [
+  {
+    "q": "Which type of bond involves sharing of electron pairs between atoms?",
+    "opts": ["Ionic bond", "Covalent bond", "Metallic bond", "Hydrogen bond"],
+    "answer": 1
+  },
+  {
+    "q": "Ionic bonds are generally formed between:",
+    "opts": ["Two metals", "Two non-metals", "Metal and non-metal", "Metal and metalloid"],
+    "answer": 2
+  },
+  {
+    "q": "Which of the following has a linear molecular geometry?",
+    "opts": ["CO2", "H2O", "NH3", "CH4"],
+    "answer": 0
+  },
+  {
+    "q": "According to VSEPR theory, the shape of methane (CH4) is:",
+    "opts": ["Linear", "Trigonal planar", "Tetrahedral", "Bent"],
+    "answer": 2
+  },
+  {
+    "q": "Metallic bonding is best described as:",
+    "opts": ["Shared electron pairs", "Electron transfer", "Sea of delocalised electrons", "Electrostatic attraction between nuclei"],
+    "answer": 2
+  },
+  {
+    "q": "Which molecule contains a polar covalent bond?",
+    "opts": ["O2", "N2", "HCl", "Cl2"],
+    "answer": 2
+  },
+  {
+    "q": "The bond formed due to electrostatic attraction between ions is:",
+    "opts": ["Covalent bond", "Ionic bond", "Metallic bond", "Coordinate bond"],
+    "answer": 1
+  },
+  {
+    "q": "Which type of bonding explains conductivity in metals?",
+    "opts": ["Ionic bonding", "Covalent bonding", "Metallic bonding", "Hydrogen bonding"],
+    "answer": 2
+  },
+  {
+    "q": "The coordinate bond involves:",
+    "opts": ["Equal sharing of electrons", "Transfer of electrons", "One atom donating both electrons to the bond", "Nuclei attraction"],
+    "answer": 2
+  },
+  {
+    "q": "Which hybridization corresponds to trigonal planar geometry?",
+    "opts": ["sp", "sp2", "sp3", "sp3d"],
+    "answer": 1
+  }
+],
+
+        2: [
+  {
+    "q": "Which of the following is a smart material?",
+    "opts": ["Shape Memory Alloy", "Cast Iron", "Brass", "Mild Steel"],
+    "answer": 0
+  },
+  {
+    "q": "Carbon fiber composites are mainly known for their:",
+    "opts": ["Low strength", "High density", "High strength-to-weight ratio", "Poor corrosion resistance"],
+    "answer": 2
+  },
+  {
+    "q": "Which material is widely used in aerospace due to its lightweight and heat resistance?",
+    "opts": ["Titanium alloys", "Copper", "Lead", "Zinc"],
+    "answer": 0
+  },
+  {
+    "q": "Nanomaterials typically have particle sizes in the range of:",
+    "opts": ["1–100 nm", "1–100 μm", "1–10 cm", "1–10 m"],
+    "answer": 0
+  },
+  {
+    "q": "Which of the following is a biodegradable polymer?",
+    "opts": ["PVC", "PLA", "Nylon", "Polyethylene"],
+    "answer": 1
+  },
+  {
+    "q": "Superalloys are primarily used in:",
+    "opts": ["Electrical circuits", "Aerospace turbine blades", "Food packaging", "Furniture"],
+    "answer": 1
+  },
+  {
+    "q": "Which category does graphene belong to?",
+    "opts": ["Ceramic material", "Metal", "2D material", "Polymer"],
+    "answer": 2
+  },
+  {
+    "q": "Shape Memory Alloys return to their original shape when:",
+    "opts": ["Electric current is applied", "Pressure is applied", "They are heated", "They are cooled"],
+    "answer": 2
+  },
+  {
+    "q": "Ceramic materials generally have:",
+    "opts": ["High thermal resistance", "High ductility", "Low hardness", "Low melting point"],
+    "answer": 0
+  },
+  {
+    "q": "Which material is commonly used for biomedical implants?",
+    "opts": ["Titanium", "Silver", "Lead", "Tin"],
+    "answer": 0
+  }
+],
+
+        3: [
+  {
+    "q": "Electrochemistry deals with the relationship between:",
+    "opts": ["Heat and energy", "Electricity and chemical reactions", "Light and matter", "Pressure and volume"],
+    "answer": 1
+  },
+  {
+    "q": "Which of the following is an example of a primary cell?",
+    "opts": ["Lead-acid battery", "Lithium-ion battery", "Dry cell", "Nickel-cadmium battery"],
+    "answer": 2
+  },
+  {
+    "q": "In an electrochemical cell, oxidation occurs at the:",
+    "opts": ["Cathode", "Anode", "Salt bridge", "Electrolyte"],
+    "answer": 1
+  },
+  {
+    "q": "The device used to maintain electrical neutrality in a galvanic cell is:",
+    "opts": ["Voltmeter", "Salt bridge", "Electrolyte", "Anode"],
+    "answer": 1
+  },
+  {
+    "q": "Which law explains the amount of substance liberated during electrolysis?",
+    "opts": ["Boyle's law", "Faraday's laws", "Ohm's law", "Charles' law"],
+    "answer": 1
+  },
+  {
+    "q": "Fuel cells are mainly used to convert:",
+    "opts": ["Mechanical energy to heat", "Chemical energy to electrical energy", "Light energy to chemical energy", "Electrical energy to chemical energy"],
+    "answer": 1
+  },
+  {
+    "q": "The pH of a solution can be measured using a:",
+    "opts": ["Fuel cell", "Calorimeter", "Glass electrode", "Salt bridge"],
+    "answer": 2
+  },
+  {
+    "q": "In electroplating, the metal to be plated is connected to the:",
+    "opts": ["Cathode", "Anode", "Voltmeter", "Salt bridge"],
+    "answer": 0
+  },
+  {
+    "q": "The standard electrode potential of hydrogen electrode is:",
+    "opts": ["1 V", "0 V", "−1 V", "2 V"],
+    "answer": 1
+  },
+  {
+    "q": "Which battery is commonly used in electric vehicles?",
+    "opts": ["Lead-acid battery", "Nickel-iron battery", "Lithium-ion battery", "Dry cell"],
+    "answer": 2
+  }
+],
+
+        4: [
+  {
+    "q": "Polymers are formed by the process of:",
+    "opts": ["Condensation", "Polymerization", "Sublimation", "Neutralization"],
+    "answer": 1
+  },
+  {
+    "q": "Which of the following is a thermoplastic polymer?",
+    "opts": ["Bakelite", "PVC", "Vulcanized rubber", "Melamine"],
+    "answer": 1
+  },
+  {
+    "q": "The monomer of polythene is:",
+    "opts": ["Styrene", "Ethylene", "Vinyl chloride", "Propylene"],
+    "answer": 1
+  },
+  {
+    "q": "Which of the following is an example of a natural polymer?",
+    "opts": ["Nylon", "Teflon", "Cellulose", "Polystyrene"],
+    "answer": 2
+  },
+  {
+    "q": "Which polymer is used in non-stick cookware?",
+    "opts": ["PVC", "Teflon", "Nylon-6,6", "Polystyrene"],
+    "answer": 1
+  },
+  {
+    "q": "Bakelite is an example of:",
+    "opts": ["Thermoplastic", "Elastomer", "Biopolymer", "Thermosetting polymer"],
+    "answer": 3
+  },
+  {
+    "q": "Rubber is made more durable by the process of:",
+    "opts": ["Crystallization", "Vulcanization", "Hydrogenation", "Cross-linking"],
+    "answer": 1
+  },
+  {
+    "q": "Which polymer is commonly used in textile fibers?",
+    "opts": ["Polystyrene", "Nylon", "Teflon", "PVC"],
+    "answer": 1
+  },
+  {
+    "q": "The polymer used in bulletproof glass is:",
+    "opts": ["Polycarbonate", "Polyester", "Polythene", "PVC"],
+    "answer": 0
+  },
+  {
+    "q": "The repeating structural unit in a polymer is called:",
+    "opts": ["Isomer", "Crystal", "Monomer", "Resin"],
+    "answer": 2
+  }
+],
+
+        5: [
+  {
+    "q": "Which technique is used to determine the absorption of UV-visible light by a substance?",
+    "opts": ["NMR Spectroscopy", "UV-Vis Spectroscopy", "Mass Spectrometry", "X-ray Diffraction"],
+    "answer": 1
+  },
+  {
+    "q": "Which instrument is used to measure the mass-to-charge ratio of ions?",
+    "opts": ["Fluorimeter", "Colorimeter", "Mass Spectrometer", "Polarimeter"],
+    "answer": 2
+  },
+  {
+    "q": "IR spectroscopy is mainly used to study:",
+    "opts": ["Electron transitions", "Molecular vibrations", "Nuclear spin", "Crystal structure"],
+    "answer": 1
+  },
+  {
+    "q": "Which analytical method is commonly used for separation of mixtures?",
+    "opts": ["Chromatography", "Electrolysis", "Calorimetry", "Potentiometry"],
+    "answer": 0
+  },
+  {
+    "q": "X-ray diffraction (XRD) is primarily used to determine:",
+    "opts": ["Molecular weight", "Crystal structure", "Thermal stability", "Color intensity"],
+    "answer": 1
+  },
+  {
+    "q": "Which instrumental technique measures the rotation of plane-polarized light?",
+    "opts": ["Polarimetry", "Fluorimetry", "NMR", "Conductometry"],
+    "answer": 0
+  },
+  {
+    "q": "Which detector is commonly used in Gas Chromatography (GC)?",
+    "opts": ["FID", "TCD", "ECD", "All of these"],
+    "answer": 3
+  },
+  {
+    "q": "pH of a solution is measured using:",
+    "opts": ["Conductometer", "Potentiometer", "Colorimeter", "pH Meter"],
+    "answer": 3
+  },
+  {
+    "q": "Which method is best for detecting functional groups in organic molecules?",
+    "opts": ["UV-Vis", "IR Spectroscopy", "XRD", "GC"],
+    "answer": 1
+  },
+  {
+    "q": "Flame photometry is mainly used for determining:",
+    "opts": ["Amino acids", "Carbohydrates", "Alkali and alkaline earth metals", "Proteins"],
+    "answer": 2
+  }
+],
+
+      },
+
+      LAC: {
+        1: [
+  {q:"What is the order of a matrix with 3 rows and 4 columns?", 
+   opts:["4×3","3×4","3×3","4×4"], 
+   answer:1},
+
+  {q:"A matrix with equal number of rows and columns is called a:", 
+   opts:["Row matrix","Column matrix","Square matrix","Diagonal matrix"], 
+   answer:2},
+
+  {q:"Which of the following is the identity matrix of order 2?", 
+   opts:["[1 0; 0 1]","[0 1; 1 0]","[2 0; 0 2]","[1 1; 1 1]"], 
+   answer:0},
+
+  {q:"If A is a 2×3 matrix and B is a 3×2 matrix, then AB will be of order:", 
+   opts:["2×2","3×3","3×2","2×3"], 
+   answer:0},
+
+  {q:"The transpose of a matrix is obtained by:", 
+   opts:["Changing signs of elements","Exchanging rows and columns","Multiplying with scalar","Adding rows"], 
+   answer:1},
+
+  {q:"A matrix in which all elements are zero is called:", 
+   opts:["Unit matrix","Null matrix","Diagonal matrix","Scalar matrix"], 
+   answer:1},
+
+  {q:"Which of the following matrices has only one row?", 
+   opts:["Square matrix","Row matrix","Column matrix","Zero matrix"], 
+   answer:1},
+
+  {q:"If A = [a b; c d], then det(A) equals:", 
+   opts:["a+b+c+d","ab+cd","ad - bc","ad + bc"], 
+   answer:2},
+
+  {q:"Which matrix has non-zero elements only on its main diagonal?", 
+   opts:["Zero matrix","Diagonal matrix","Row matrix","Symmetric matrix"], 
+   answer:1},
+
+  {q:"A matrix A is symmetric if:", 
+   opts:["A = -Aᵀ","A = Aᵀ","A has only zeros","A is diagonal"], 
+   answer:1}
+],
+
+        2:[
+  {
+    q:"A function T: V → W is called a linear transformation if it satisfies:", 
+    opts:["T(u+v)=T(u)-T(v)","T(cu)=c+T(u)","T(u+v)=T(u)+T(v) and T(cu)=cT(u)","T(u)=u^2"], 
+    answer:2
+  },
+
+  {
+    q:"The matrix of a linear transformation depends on:", 
+    opts:["The shape of matrix","The choice of basis","The number of variables only","None of these"], 
+    answer:1
+  },
+
+  {
+    q:"A transformation T is orthogonal if its matrix A satisfies:", 
+    opts:["A + Aᵀ = 0","A² = I","AAᵀ = I","Aᵀ = −A"], 
+    answer:2
+  },
+
+  { 
+    q:"Orthogonal transformations preserve:", 
+    opts:["Angles only","Lengths only","Both lengths and angles","Eigenvalues only"], 
+    answer:2
+  },
+
+  { 
+    q:"Which of the following is always true for an orthogonal matrix?", 
+    opts:["Determinant is zero","Determinant is ±1","Determinant is always 1","All entries are 0 or 1"], 
+    answer:1
+  },
+  { 
+    q:"If T is a linear transformation, T(0) equals:", 
+    opts:["1","0","Depends on T","Cannot be determined"], 
+    answer:1
+  },
+
+  {
+    q:"A transformation that preserves inner product is called:", 
+    opts:["Linear transformation","Orthogonal transformation","Translation","Shear transformation"], 
+    answer:1
+  },
+
+  {
+    q:"The inverse of an orthogonal matrix A is:", 
+    opts:["A","A²","Aᵀ","2A"], 
+    answer:2
+   },
+
+  { 
+    q:"Which of the following is an example of an orthogonal transformation?", 
+    opts:["Rotation","Shear","Scaling","Projection"], 
+    answer:0
+   },
+
+  {
+    q:"A linear transformation T: R² → R² represented by a matrix with determinant 0 is:", 
+    opts:["Invertible","Not invertible","Always orthogonal","Always diagonal"], 
+    answer:1
+  }
+],
+
+        3: [
+  {q:"Rolle’s Theorem requires the function to be:", 
+   opts:["Continuous only","Differentiable only","Continuous on [a,b] and differentiable on (a,b)","Increasing on [a,b]"], 
+   answer:2},
+
+  {q:"If f(a) = f(b), then which theorem guarantees a point c where f’(c) = 0?", 
+   opts:["Lagrange’s MVT","Cauchy’s MVT","Taylor’s Theorem","Rolle’s Theorem"], 
+   answer:3},
+
+  {q:"Lagrange’s Mean Value Theorem states:", 
+   opts:["f’(c) = 0","f’(c) = f(c)/c","f’(c) = [f(b)-f(a)] / [b-a]","f(a)=f(b)"], 
+   answer:2},
+
+  {q:"Which theorem is a generalization of Lagrange’s MVT?", 
+   opts:["Cauchy’s Mean Value Theorem","Rolle’s Theorem","Taylor’s Theorem","Fundamental Theorem of Calculus"], 
+   answer:0},
+
+  {q:"Which condition is NOT required for Lagrange’s MVT?", 
+   opts:["Function must be continuous on [a,b]","Function must be differentiable on (a,b)","f(a) must equal f(b)","a < b"], 
+   answer:2},
+
+  {q:"Rolle’s Theorem is a special case of:", 
+   opts:["Cauchy’s MVT","Taylor’s Theorem","Lagrange’s MVT","Bernoulli’s Theorem"], 
+   answer:2},
+
+  {q:"Cauchy’s MVT involves how many functions?", 
+   opts:["1","2","3","4"], 
+   answer:1},
+
+  {q:"For Rolle’s theorem, the point c lies in:", 
+   opts:["[a,b]","(a,b)","(-∞,∞)","Any closed interval"], 
+   answer:1},
+
+  {q:"If f(x) = x² on [0,2], Lagrange’s MVT gives c such that:", 
+   opts:["f’(c)=0","f’(c)=4","f’(c)=2","f’(c)=1"], 
+   answer:2},
+
+  {q:"Mean Value Theorem is applicable only if:", 
+   opts:["Function is bounded","Function is periodic","Function is continuous on closed interval and differentiable on open interval","Function is strictly increasing"], 
+   answer:2}
+],
+
+        4: [
+  {q:"The partial derivative of f(x,y) with respect to x is denoted by:", 
+   opts:["df/dx","∂f/∂x","df/dy","∇f"], 
+   answer:1},
+
+  {q:"Partial differentiation is used when a function depends on:", 
+   opts:["Only one variable","Two or more variables","No variables","Constant functions"], 
+   answer:1},
+
+  {q:"If f(x,y)=x²y, then ∂f/∂x equals:", 
+   opts:["2xy","x²","y","2x+y"], 
+   answer:0},
+
+  {q:"The notation ∂²f/∂x² represents:", 
+   opts:["Second order partial derivative","Mixed partial derivative","Total derivative","Integral"], 
+   answer:0},
+
+  {q:"Clairaut’s theorem states that for continuous functions:", 
+   opts:["∂²f/∂x∂y = ∂f/∂x","∂²f/∂x∂y = ∂²f/∂y∂x","∂f/∂x = ∂f/∂y","∂²f/∂y² = ∂²f/∂x²"], 
+   answer:1},
+
+  {q:"If z = f(x,y), then dz is given by:", 
+   opts:["dz = f dx + y dy","dz = ∂f/∂x dx + ∂f/∂y dy","dz = dx + dy","dz = x dy + y dx"], 
+   answer:1},
+
+  {q:"The Jacobian determinant is used in:", 
+   opts:["Integration by parts","Coordinate transformation","Finding limits","Solving algebraic equations"], 
+   answer:1},
+
+  {q:"If u = x² + y², then ∂u/∂y equals:", 
+   opts:["2x","2y","x+y","xy"], 
+   answer:1},
+
+  {q:"A critical point occurs where:", 
+   opts:["Partial derivatives equal 1","Only one partial derivative is zero","Both partial derivatives are zero","Second derivatives are zero"], 
+   answer:2},
+
+  {q:"Partial derivatives are mainly used in:", 
+   opts:["Heat and wave equations","Matrix algebra","Number theory","Graph theory"], 
+   answer:0}
+],
+
+        5: [
+  {q:"The partial derivative of f(x,y) with respect to x is denoted by:", 
+   opts:["df/dx","∂f/∂x","df/dy","∇f"], 
+   answer:1},
+
+  {q:"Partial differentiation is used when a function depends on:", 
+   opts:["Only one variable","Two or more variables","No variables","Constant functions"], 
+   answer:1},
+
+  {q:"If f(x,y)=x²y, then ∂f/∂x equals:", 
+   opts:["2xy","x²","y","2x+y"], 
+   answer:0},
+
+  {q:"The notation ∂²f/∂x² represents:", 
+   opts:["Second order partial derivative","Mixed partial derivative","Total derivative","Integral"], 
+   answer:0},
+
+  {q:"Clairaut’s theorem states that for continuous functions:", 
+   opts:["∂²f/∂x∂y = ∂f/∂x","∂²f/∂x∂y = ∂²f/∂y∂x","∂f/∂x = ∂f/∂y","∂²f/∂y² = ∂²f/∂x²"], 
+   answer:1},
+
+  {q:"If z = f(x,y), then dz is given by:", 
+   opts:["dz = f dx + y dy","dz = ∂f/∂x dx + ∂f/∂y dy","dz = dx + dy","dz = x dy + y dx"], 
+   answer:1},
+
+  {q:"The Jacobian determinant is used in:", 
+   opts:["Integration by parts","Coordinate transformation","Finding limits","Solving algebraic equations"], 
+   answer:1},
+
+  {q:"If u = x² + y², then ∂u/∂y equals:", 
+   opts:["2x","2y","x+y","xy"], 
+   answer:1},
+
+  {q:"A critical point occurs where:", 
+   opts:["Partial derivatives equal 1","Only one partial derivative is zero","Both partial derivatives are zero","Second derivatives are zero"], 
+   answer:2},
+
+  {q:"Partial derivatives are mainly used in:", 
+   opts:["Heat and wave equations","Matrix algebra","Number theory","Graph theory"], 
+   answer:0}
+     ]}}
+    // --- App state ---
+    let state = {
+      role: null, // 'teacher' or 'student'
+      email: null,
+      subject: null,
+      unit: null,
+      answers: []
+    };
+
+    // --- Helpers ---
+    function $(id){return document.getElementById(id)}
+    function goToSection(id){
+      const sections = ['home','login','subject','unit','questions'];
+      sections.forEach(s=> $(s).classList.add('hidden'));
+      $(id).classList.remove('hidden');
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function goHome(){ state = {role:null,email:null,subject:null,unit:null,answers:[]}; $('loginMsg').textContent=''; $('result').textContent=''; goToSection('home'); }
+
+    // role clicks
+    $('teacherCard').addEventListener('click', ()=>{
+      state.role='teacher';
+      $('loginTitle').textContent='Teacher Sign In';
+      $('loginRoleLabel').textContent='Teacher';
+      $('email').value=''; $('password').value='';
+      goToSection('login');
+    });
+    $('studentCard').addEventListener('click', ()=>{
+      state.role='student';
+      $('loginTitle').textContent='Student Sign Up';
+      $('loginRoleLabel').textContent='Student';
+      $('email').value=''; $('password').value='';
+      goToSection('login');
+    });
+
+    // Gmail validation (simple)
+    function isGmail(val){
+      return /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(val.trim());
+    }
+
+    // Handle login
+    function handleLogin(e){
+      e.preventDefault();
+      const email = $('email').value.trim();
+      const password = $('password').value;
+      const msg = $('loginMsg'); msg.textContent='';
+
+      if(!isGmail(email)){
+        msg.textContent='Please enter a valid Gmail address (example@gmail.com).';
+        return false;
+      }
+
+      if(state.role==='teacher'){
+        // Only accept the predefined teacher email/password
+        if(email.toLowerCase() === TEACHER_EMAIL && password === TEACHER_PASSWORD){
+          state.email = email; $('loginMsg').textContent = 'Teacher authenticated.'; renderSubjects();
+          setTimeout(()=> goToSection('subject'), 400);
+        } else {
+          msg.textContent = 'Invalid teacher credentials. Use predefined teacher credentials.';
+        }
+      } else {
+        // Students: allow any gmail & password
+        state.email = email; $('loginMsg').textContent = 'Student registered.'; renderSubjects();
+        setTimeout(()=> goToSection('subject'), 400);
+      }
+      return false;
+    }
+
+    // Render subjects
+    function renderSubjects(){
+      const grid = $('subjectGrid'); grid.innerHTML='';
+      SUBJECTS.forEach(s=>{
+        const btn = document.createElement('button'); btn.className='pill'; btn.textContent=s;
+        btn.onclick = ()=>{ state.subject = s; renderUnits(); goToSection('unit'); };
+        grid.appendChild(btn);
+      });
+      $('subjectTitle').textContent = `Choose Subject — (${state.role})`;
+    }
+
+    // Render units
+    function renderUnits(){
+      const grid = $('unitGrid'); grid.innerHTML='';
+      UNITS.forEach(u=>{
+        const btn = document.createElement('button'); btn.className='pill'; btn.textContent=`Unit ${u}`;
+        btn.onclick = ()=>{ state.unit = u; startQuestions(); };
+        grid.appendChild(btn);
+      });
+      $('unitTitle').textContent = `Select Unit for ${state.subject}`;
+    }
+
+    // Start questions for selected subject/unit
+    function startQuestions() {
+      state.answers = [];
+
+      $('currentUnit').textContent = state.unit;
+      $('currentSubject').textContent = state.subject;
+
+      // Fetch correct questions for selected subject & unit
+      const subject = state.subject;
+      const unit = state.unit;
+
+      const questions = QUESTIONS_MASTER[subject][unit];
+
+      const qContainer = $('questionsContainer');
+      qContainer.innerHTML = '';
+
+      questions.forEach((qobj, idx) => {
+        state.answers[idx] = null;
+
+        const div = document.createElement('div');
+        div.className = 'question';
+
+        const title = document.createElement('div');
+        title.className = 'q-title';
+        title.textContent = `${idx + 1}. ${qobj.q}`;
+
+        const txt = document.createElement('textarea');
+        txt.placeholder = '(Optional) Write your answer or notes here...';
+        txt.style.width = '100%';
+        txt.style.margin = '8px 0';
+        txt.rows = 2;
+
+        const opts = document.createElement('div');
+        opts.className = 'options';
+
+        qobj.opts.forEach((opt, i) => {
+          const lab = document.createElement('label');
+          lab.className = 'option';
+
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = `q${idx}`;
+          radio.value = i;
+          radio.onclick = () => state.answers[idx] = Number(i);
+
+          const span = document.createElement('span');
+          span.textContent = opt;
+
+          lab.appendChild(radio);
+          lab.appendChild(span);
+          opts.appendChild(lab);
+        });
+
+        div.appendChild(title);
+        div.appendChild(txt);
+        div.appendChild(opts);
+        qContainer.appendChild(div);
+      });
+
+      $('result').textContent = '';
+      goToSection('questions');
+    }
+
+
+    // Submit and score
+    function submitAnswers() {
+      const questions = QUESTIONS_MASTER[state.subject][state.unit];
+      let score = 0;
+
+      questions.forEach((q, i) => {
+        if (state.answers[i] === q.answer) score++;
+      });
+
+      $('result').textContent = `Your score: ${score}/${questions.length}`;
+
+      if (state.role === 'teacher') {
+        $('result').textContent += ' — (Teacher view)';
+      }
+
+      $('result').scrollIntoView({ behavior: 'smooth' });
+    }
+
+
+    // Initialize app - show home
+    goHome();
+  </script>
+</body>
+</html>
