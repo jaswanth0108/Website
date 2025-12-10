@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz Portal</title>
+  <style>
+    /* =========================
+       STYLE A - Neon Tech / Cyber Blue
+       ========================= */
+    :root{
+      --bg1: #02021a;
+      --panel: rgba(6,14,40,0.6);
+      --neon1: #00d9ff;
+      --neon2: #7a00ff;
+      --accent: #7ad9ff;
+      --glass: rgba(255,255,255,0.04);
+      --muted: #bcdbee;
+    }
+
+    html,body{height:100%;margin:0;font-family:Inter, Poppins, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
+    body{
+      background: radial-gradient(1000px 500px at 10% 10%, rgba(10,20,80,0.45), transparent),
+                  radial-gradient(800px 400px at 90% 90%, rgba(50,0,80,0.45), transparent),
+                  linear-gradient(180deg,#030226 0%, #000814 100%);
+      color: var(--muted);
+      -webkit-font-smoothing:antialiased;
+      display:flex;align-items:center;justify-content:center;padding:28px;
+      min-height:100vh;
+      height:auto;
+    }
+
+    .app {
+      width:100%; max-width:1100px; border-radius:14px; overflow:auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 120px rgba(0,150,255,0.06);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .topbar{
+      display:flex;justify-content:space-between;align-items:center;padding:18px 26px;background:linear-gradient(90deg, rgba(10,10,40,0.6), rgba(5,0,30,0.6));
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .brand { font-weight:700;color:white;font-size:20px; text-shadow: 0 0 8px rgba(0,215,255,0.12);}
+    .userInfo { font-size:14px; color:var(--muted); }
+
+    main {
+      display:flex; padding:34px; gap:32px; align-items:flex-start;
+    }
+
+    .left {
+      flex: 1.05;
+      min-height: 420px;
+      height: auto;
+    }
+
+    .right { display:none; } /* QUICK TIPS REMOVED */
+
+    .page { display:none; }
+    .page.active { display:block; }
+
+    .homeChoice {
+      display:flex; gap:20px; justify-content:center; align-items:center;
+    }
+    .choiceCard{
+      flex:1; min-width:220px; max-width:420px; padding:28px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.03);
+      text-align:center; cursor:pointer; transition: transform .18s ease, box-shadow .18s ease;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6), 0 0 24px rgba(0,150,255,0.02) inset;
+    }
+    .choiceCard h2 { color: white; margin: 6px 0 8px; font-size:22px; }
+    .choiceCard p { color: var(--muted); margin:0; font-size:14px; }
+    .choiceCard:hover{ transform: translateY(-8px); box-shadow: 0 18px 44px rgba(0,0,0,0.7), 0 0 32px rgba(0,150,255,0.15); }
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px; padding:16px 18px; border:1px solid rgba(255,255,255,0.03);
+      box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
+    input[type="email"], input[type="password"], input[type="text"], select, textarea {
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(122,122,160,0.08);
+      background: rgb(253, 253, 253); color: #0a0a0a; outline:none; font-size:14px;
+    }
+    textarea { min-height:64px; resize:vertical; }
+
+    .btn {
+      display:inline-block; padding:10px 14px; border-radius:10px; border:0; cursor:pointer;
+      background: linear-gradient(90deg, var(--neon1), var(--neon2)); color:#001; font-weight:700;
+      box-shadow:0 8px 28px rgba(0,150,255,0.12), 0 0 18px rgba(122,0,255,0.08);
+      transition: transform .16s ease, box-shadow .16s ease;
+    }
+    .btn:hover{ transform:translateY(-3px); box-shadow:0 14px 38px rgba(0,210,255,0.18); }
+    .btn.ghost { background: transparent; color: var(--accent); border:1px solid rgba(122,200,255,0.08); box-shadow:none; font-weight:600; }
+    .btn.danger { background: linear-gradient(90deg,#ff3b5c,#ff6b8a); color:white; }
+
+    .questions-list{ margin-top:16px; }
+    .qcard{ background: linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.22)); padding:12px; border-radius:10px; margin-bottom:10px; border:1px solid rgba(0,150,255,0.06); }
+    .qcard strong { color: #dff7ff; }
+    .q-opts { margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+    .opt { padding:8px; border-radius:8px; background: rgba(255,255,255,0.02); color:var(--muted); border:1px solid rgba(255,255,255,0.02); }
+  
+    .quizQuestions{ background: linear-gradient(90deg, rgba(0,0,0,0.24), rgba(0,0,0,0.2)); padding:14px; border-radius:10px; margin-bottom:12px; }
+    .option{ display:block; padding:10px; border-radius:8px; margin-top:8px; cursor:pointer; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.02); color:var(--muted); }
+    .option input{ margin-right:8px; }
+
+    .timer { font-weight:700; color:var(--accent); }
+
+    .muted { color: #b7dbf4; font-size:13px; }
+    .center { text-align:center; }
+
+    @media (max-width:900px){
+      main { flex-direction:column; padding:18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application">
+    <div class="topbar">
+      <div class="brand">QUIZ PORTAL</div>
+      <div class="userInfo" id="current-user"></div>
+    </div>
+
+    <main>
+      <div class="left">
+
+        <!-- HOME -->
+        <section id="home" class="page active">
+          <div class="panel center">
+            <h2 style="color:white">WELCOME TO THE QUIZZONE</h2>
+            <H3 class="muted">A modern quiz website built to enhance learning through interactive questions and instant feedback. 
+              Perfect for students, teachers, and knowledge seekers who love to learn smarter..</H3>
+            <div class="homeChoice" style="margin-top:18px">
+              <div class="choiceCard" id="teacherCard">
+                <h2>Teachers</h2>
+                <p>Sign in with your teacher Gmail and manage quizzes.</p>
+                <div style="margin-top:14px"><button class="btn" onclick="goTo('teacher')">Open</button></div>
+              </div>
+              <div class="choiceCard" id="studentCard">
+                <h2>Students</h2>
+                <p>Sign up with any proper Gmail to take quizzes.</p>
+                <div style="margin-top:14px"><button class="btn" onclick="goTo('student')">Open</button></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SIGNUP -->
+        <section id="signup" class="page">
+          <div class="panel">
+            <h2 id="signupTitle">Sign Up</h2>
+            <form id="signupForm">
+              <label for="email">Email (Gmail only)</label>
+              <input id="email" type="email" placeholder="yourname@gmail.com" required />
+              <label for="password">Password</label>
+              <input id="password" type="password" placeholder="password" required />
+              <div style="display:flex;gap:10px; margin-top:12px;">
+                <button type="submit" class="btn">Submit</button>
+                <button type="button" class="btn ghost" id="backHome">Back</button>
+              </div>
+              <p id="signupMsg" class="muted center" style="margin-top:10px"></p>
+            </form>
+          </div>
+        </section>
+
+        <!-- TEACHER -->
+        <section id="teacherPage" class="page">
+          <div class="panel">
+            <h2>Teacher Portal</h2>
+            <p class="muted">Select Subject & Unit, add questions (4 options). Then assign correct answer.</p>
+
+            <div style="display:flex;gap:10px;margin-top:12px;">
+              <div style="flex:1">
+                <label>Subject</label>
+                <select id="teacherSubject">
+                  <option>EG</option><option>BCME</option><option>IP</option><option>Chem</option><option>LAC</option>
+                </select>
+              </div>
+              <div style="width:120px">
+                <label>Unit</label>
+                <select id="teacherUnit">
+                  <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                </select>
+              </div>
+            </div>
+
+            <hr style="border:none;height:1px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));margin:14px 0" />
+
+            <form id="questionForm">
+              <label>Question</label>
+              <textarea id="qText" placeholder="Enter question..." required></textarea>
+
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <input id="optA" type="text" placeholder="Option A" required>
+                <input id="optB" type="text" placeholder="Option B" required>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <input id="optC" type="text" placeholder="Option C" required>
+                <input id="optD" type="text" placeholder="Option D" required>
+              </div>
+
+              <label style="margin-top:8px">Correct Option</label>
+              <select id="correctOpt">
+                <option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option>
+              </select>
+
+              <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+                <button type="button" id="addQ" class="btn">Add Question</button>
+                <button type="button" id="clearQs" class="btn ghost">Clear Draft</button>
+                <button type="button" id="assignQuiz" class="btn">Assign Quiz</button>
+                <button type="button" id="teacherLogout" class="btn danger" style="margin-left:auto">Logout</button>
+              </div>
+            </form>
+
+            <div class="questions-list" id="questionsList"></div>
+          </div>
+        </section>
+
+        <!-- STUDENT -->
+        <section id="studentPage" class="page">
+          <div class="panel">
+            <h2>Student Portal</h2>
+            <p class="muted">Select subject & unit to load an assigned quiz.</p>
+
+            <div style="display:flex;gap:10px;margin-top:12px;">
+              <div style="flex:1">
+                <label>Subject</label>
+                <select id="studentSubject">
+                  <option>EG</option><option>BCME</option><option>IP</option><option>Chem</option><option>LAC</option>
+                </select>
+              </div>
+              <div style="width:120px">
+                <label>Unit</label>
+                <select id="studentUnit">
+                  <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:8px;">
+              <button id="loadQuiz" class="btn">Load Quiz</button>
+              <button id="logoutStudent" class="btn ghost">Logout</button>
+            </div>
+
+            <div id="quizArea" style="margin-top:16px"></div>
+          </div>
+        </section>
+
+        <!-- QUIZ PAGE -->
+        <section id="takeQuizPage" class="page">
+          <div class="panel">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <h2>Quiz</h2>
+              <div class="timer" id="timerDisplay">Time: --:--</div>
+            </div>
+            <div id="quizQuestions" style="margin-top:12px"></div>
+
+            <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
+              <button id="submitQuiz" class="btn ghost" >Submit Quiz</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- RESULT -->
+        <section id="resultPage" class="page">
+          <div class="panel center">
+            <h2>Result</h2>
+            <div id="resultText" class="muted" style="margin-top:10px"></div>
+            <div style="margin-top:14px">
+              <button id="backToStudent" class="btn">Back to Student Portal</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /************************************************************************
+     * Full Single-file Quiz App
+     ************************************************************************/
+
+    const TEACHER_EMAIL = 'teacher@gmail.com';
+    const TEACHER_PASSWORD = 'Teacher@123';
+
+    const el = id => document.getElementById(id);
+    function showPage(id){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      el(id).classList.add('active');
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function isValidGmail(email){ return /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email); }
+
+    function loadQuizzes(){ return JSON.parse(localStorage.getItem('quizzes')||'{}'); }
+    function saveQuizzes(obj){ localStorage.setItem('quizzes', JSON.stringify(obj)); }
+
+    function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"'"}[c])); }
+
+    let currentRole = null;
+    let currentUserEmail = null;
+    let editingQuestions = [];
+    window._quizTimer = null;
+
+    document.getElementById('teacherCard').addEventListener('click', ()=> goTo('teacher'));
+    document.getElementById('studentCard').addEventListener('click', ()=> goTo('student'));
+    el('backHome').addEventListener('click', ()=> { showPage('home'); el('signupForm').reset(); el('signupMsg').textContent=''; });
+
+    el('logoutStudent').addEventListener('click', ()=> {
+      if(confirm('Logout?')) {
+        currentUserEmail = null; el('current-user').textContent='Not signed in'; showPage('home');
+      }
+    });
+
+    el('teacherLogout').addEventListener('click', ()=> {
+      if(confirm('Logout?')) {
+        currentUserEmail = null; editingQuestions=[]; renderQuestionsList();
+        el('current-user').textContent='Not signed in'; showPage('home');
+      }
+    });
+
+    el('signupForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const email = el('email').value.trim();
+      const pwd = el('password').value.trim();
+      if(!isValidGmail(email)){ el('signupMsg').textContent = 'Please enter a proper Gmail ID.'; return; }
+
+      if(currentRole === 'teacher'){
+        if(email !== TEACHER_EMAIL || pwd !== TEACHER_PASSWORD){
+          el('signupMsg').textContent = 'Incorrect teacher credentials.'; return;
+        }
+        currentUserEmail = email; el('current-user').textContent = 'Teacher: ' + email;
+        showPage('teacherPage'); loadTeacherState();
+      } else {
+        currentUserEmail = email; el('current-user').textContent = 'Student: ' + email;
+        showPage('studentPage');
+      }
+      el('signupForm').reset(); el('signupMsg').textContent='';
+    });
+
+    el('addQ').addEventListener('click', ()=>{
+      const q = el('qText').value.trim();
+      const a = el('optA').value.trim();
+      const b = el('optB').value.trim();
+      const c = el('optC').value.trim();
+      const d = el('optD').value.trim();
+      const correct = parseInt(el('correctOpt').value);
+      if(!q||!a||!b||!c||!d){ alert('Fill all fields'); return; }
+      editingQuestions.push({ q, opts:[a,b,c,d], correct, mark:1 });
+      el('qText').value=''; el('optA').value=''; el('optB').value=''; el('optC').value=''; el('optD').value=''; el('correctOpt').value='0';
+      renderQuestionsList();
+    });
+
+    el('clearQs').addEventListener('click', ()=> {
+      if(confirm('Clear draft questions?')) { editingQuestions=[]; renderQuestionsList(); }
+    });
+
+    el('assignQuiz').addEventListener('click', ()=>{
+
+  if(editingQuestions.length===0){
+    alert('Add at least one question');
+    return;
+  }
+
+  const subj = el('teacherSubject').value;
+  const unit = el('teacherUnit').value;
+
+  const ok = confirm('Click Ok if you want to assign quiz, if not click cancel');
+  if(ok){
+
+    const key = subj + '_' + unit;
+    const quizzes = loadQuizzes();
+
+    // Create quiz structure (no section array now)
+    quizzes[key] = quizzes[key] || { questions:[], assigned:false };
+
+    // Save questions
+    quizzes[key].questions = editingQuestions.map(q=>({
+      q: q.q,
+      opts: q.opts,
+      correct: q.correct,
+      mark: q.mark || 1
+    }));
+
+    quizzes[key].assigned = true;
+    saveQuizzes(quizzes);
+
+    alert('Quiz assigned successfully');
+
+    editingQuestions = [];
+    renderQuestionsList();
+
+  } else {
+    alert('Assignment cancelled.');
+  }
+
+});
+
+
+    el('loadQuiz').addEventListener('click', ()=>{
+  const subj = el('studentSubject').value;
+  const unit = el('studentUnit').value;
+  const key = subj + '_' + unit;
+
+  const quizzes = loadQuizzes();
+  const qObj = quizzes[key];
+
+  const area = el('quizArea');
+  area.innerHTML = '';
+
+  if(!qObj || !qObj.assigned){
+    area.innerHTML = '<p class="muted">No quiz assigned.</p>';
+    return;
+  }
+
+  // No section input — directly show Start Quiz button
+  area.innerHTML = `
+    <p class="muted">Quiz found with <strong>${qObj.questions.length}</strong> questions.</p>
+    <div style="margin-top:12px">
+      <button id="startQuiz" class="btn">Start Quiz</button>
+    </div>
+  `;
+
+  el('startQuiz').addEventListener('click', ()=>{
+    startQuiz(qObj.questions);
+  });
+});
+
+
+    // Robust submit handler — works regardless of button visual state
+    el('submitQuiz').onclick = function () {
+      const state = window._currentQuiz;
+      if (!state || !Array.isArray(state.answers) || !Array.isArray(state.questions)) {
+        alert('No quiz in progress.');
+        return;
+      }
+
+      const answers = state.answers;
+      const questions = state.questions;
+
+      // find first unanswered
+      const firstUnanswered = answers.findIndex(a => a === null || typeof a === 'undefined');
+
+      if (firstUnanswered >= 0) {
+        // highlight and scroll to the first unanswered
+        const qCards = document.querySelectorAll('.quizQuestion');
+        const qCard = qCards[firstUnanswered];
+        if (qCard) {
+          qCard.style.outline = '3px solid rgba(255,90,90,0.95)';
+          qCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => { qCard.style.outline = ''; }, 1500);
+        }
+        alert('Please answer all the questions before submitting the quiz.');
+        return;
+      }
+
+      // lengths should match — sanity check
+      if (answers.length !== questions.length) {
+        alert('Internal error: answer/question mismatch. Check console for details.');
+        console.error('submitQuiz: answers/questions length mismatch', answers, questions);
+        return;
+      }
+
+      if (!confirm('Submit quiz now?')) return;
+      submitQuizInternal(questions, answers);
+    };
+
+
+
+
+    el('backToStudent').addEventListener('click', ()=> {
+      showPage('studentPage'); el('quizArea').innerHTML = ''; el('current-user').textContent = 'Student: ' + currentUserEmail;
+    });
+
+    el('teacherSubject').addEventListener('change', loadDraftFromSaved);
+    el('teacherUnit').addEventListener('change', loadDraftFromSaved);
+
+    function goTo(role){
+      currentRole = role;
+      el('signupTitle').textContent = role === 'teacher' ? 'Teacher Sign In' : 'Student Sign Up';
+      showPage('signup');
+    }
+
+    function loadTeacherState(){
+      editingQuestions = [];
+      renderQuestionsList();
+    }
+
+    function renderQuestionsList(){
+      const container = el('questionsList'); container.innerHTML = '';
+      if(editingQuestions.length === 0){ container.innerHTML = '<p class="muted">No draft questions.</p>'; return; }
+      editingQuestions.forEach((it,i) => {
+        const div = document.createElement('div'); div.className = 'qcard';
+        div.innerHTML = `<div><strong>Q${i+1}.</strong> ${esc(it.q)}</div>`;
+        const optsDiv = document.createElement('div'); optsDiv.className = 'q-opts';
+        it.opts.forEach((o,j)=>{
+          const opt = document.createElement('div'); opt.className = 'opt';
+          opt.innerHTML = `<span style="font-weight:600;color:#dff7ff">${String.fromCharCode(65+j)}.</span> ${esc(o)} ${j===it.correct ? '<span style="color:#9ef9ff;font-weight:700;margin-left:8px">(Correct)</span>':''}`;
+          optsDiv.appendChild(opt);
+        });
+        div.appendChild(optsDiv);
+        const actions = document.createElement('div'); actions.style.marginTop = '8px';
+        const editBtn = document.createElement('button'); editBtn.className='btn ghost'; editBtn.textContent='Edit';
+        editBtn.onclick = ()=> populateForEdit(i);
+        const delBtn = document.createElement('button'); delBtn.className='btn ghost'; delBtn.textContent='Delete';
+        delBtn.onclick = ()=> { if(confirm('Delete this question?')) { editingQuestions.splice(i,1); renderQuestionsList(); } };
+        actions.appendChild(editBtn); actions.appendChild(delBtn);
+        div.appendChild(actions);
+        container.appendChild(div);
+      });
+    }
+
+    function populateForEdit(i){
+      const it = editingQuestions[i];
+      el('qText').value = it.q;
+      el('optA').value = it.opts[0];
+      el('optB').value = it.opts[1];
+      el('optC').value = it.opts[2];
+      el('optD').value = it.opts[3];
+      el('correctOpt').value = it.correct;
+      editingQuestions.splice(i,1);
+      renderQuestionsList();
+    }
+
+    function loadDraftFromSaved(){
+      const key = el('teacherSubject').value + '_' + el('teacherUnit').value;
+      const quizzes = loadQuizzes();
+      if(quizzes[key] && quizzes[key].questions && quizzes[key].questions.length>0){
+        editingQuestions = quizzes[key].questions.map(q => ({ q:q.q, opts:q.opts.slice(), correct:q.correct, mark:q.mark||1 }));
+      } else editingQuestions = [];
+      renderQuestionsList();
+    }
+
+    function startQuiz(questions){
+      showPage('takeQuizPage');
+      const container = el('quizQuestions'); container.innerHTML = '';
+      const answers = new Array(questions.length).fill(null);
+
+      questions.forEach((qq, idx) => {
+        const div = document.createElement('div'); div.className = 'quizQuestions';
+        div.innerHTML = `<div style="font-weight:700;color:#dff7ff">Q${idx+1}.</div><div style="margin-top:6px;margin-bottom:6px;color:var(--muted)">${esc(qq.q)}</div>`;
+        qq.opts.forEach((opt, oi) => {
+          const lab = document.createElement('label'); lab.className = 'option';
+          const radio = document.createElement('input'); radio.type='radio'; radio.name = 'q'+idx; radio.value = oi;
+          // radio.addEventListener('change', ()=>{ answers[idx] = parseInt(radio.value); checkAllAnswered(answers); });
+          radio.addEventListener('change', ()=>{
+          answers[idx] = Number(radio.value);            // explicit numeric
+          checkAllAnswered(answers);                     // update UI state if you still want that visual enable/disable
+          // debug:
+          // console.log('Answer set for', idx, '->', answers[idx]);
+        });
+
+          lab.appendChild(radio); lab.appendChild(document.createTextNode(' ' + opt));
+          div.appendChild(lab);
+        });
+        container.appendChild(div);
+      });
+
+      const totalMinutes = questions.length * 5;
+      let remaining = totalMinutes * 60;
+      el('timerDisplay').textContent = formatTime(remaining);
+
+      // el('submitQuiz').disabled = true;
+      el('submitQuiz').classList.add('ghost');
+
+      if(window._quizTimer) clearInterval(window._quizTimer);
+      window._quizTimer = setInterval(()=>{
+        remaining--; el('timerDisplay').textContent = formatTime(remaining);
+        if(remaining <= 0){ clearInterval(window._quizTimer); alert('Time is up — submitting quiz.'); submitQuizInternal(questions, answers); }
+      }, 1000);
+
+      window._currentQuiz = { questions, answers };
+    }
+
+    function checkAllAnswered(answers){
+      const all = Array.isArray(answers) && answers.every(a => a !== null && typeof a !== 'undefined');
+      // DO NOT disable the button; only toggle ghost styling
+      if (all) {
+        el('submitQuiz').classList.remove('ghost');
+      } else {
+        if (!el('submitQuiz').classList.contains('ghost')) el('submitQuiz').classList.add('ghost');
+      }
+    }
+
+
+
+    function formatTime(sec){
+      if(sec < 0) sec = 0;
+      const m = Math.floor(sec / 60); const s = sec % 60;
+      return 'Time: ' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    }
+
+    function submitQuizInternal(questions, answers){
+      if(window._quizTimer) { clearInterval(window._quizTimer); window._quizTimer = null; }
+      let score = 0;
+      for(let i=0;i<questions.length;i++){
+        if(answers[i] === questions[i].correct) score += (questions[i].mark || 1);
+      }
+      showPage('resultPage');
+      el('resultText').innerHTML = `<p style="font-size:18px;color:#dff7ff">You scored <strong style="color:#9ef9ff">${score}</strong> out of <strong>${questions.length}</strong>.</p>`;
+      // el('submitQuiz').disabled = true;
+      el('submitQuiz').classList.add('ghost');
+    }
+
+    window.addEventListener('beforeunload', ()=> { if(window._quizTimer) clearInterval(window._quizTimer); });
+
+    showPage('home');
+  </script>
+</body>
+</html>
